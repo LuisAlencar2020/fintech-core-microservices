@@ -1,0 +1,87 @@
+version: '3.8'
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # 🗄️ 1. Banco de Dados Relacional (PostgreSQL) - Módulo Banco de Dados
+  # ---------------------------------------------------------------------------
+  postgres-db:
+    image: postgres:16-alpine
+    container_name: fintech-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: fintech_db
+      POSTGRES_USER: fintech_user
+      POSTGRES_PASSWORD: fintech_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Executa o script de inicialização do banco ao subir o container
+      - ./services/auth-service-java/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - fintech-network
+
+  # ---------------------------------------------------------------------------
+  # ⚡ 2. Banco de Dados NoSQL / Cache (Redis) - Módulo NoSQL / Chave-Valor
+  # ---------------------------------------------------------------------------
+  redis-cache:
+    image: redis:7-alpine
+    container_name: fintech-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - fintech-network
+
+  # ---------------------------------------------------------------------------
+  # ☕ 3. Microsserviço Java 21 (Auth & Contas) - Módulo Java SE 21 / Web REST
+  # ---------------------------------------------------------------------------
+  auth-service-java:
+    build:
+      context: ./services/auth-service-java
+      dockerfile: Dockerfile
+    container_name: fintech-auth-service
+    restart: on-failure
+    ports:
+      - "8080:8080"
+    environment:
+      DB_URL: jdbc:postgresql://postgres-db:5432/fintech_db
+      DB_USER: fintech_user
+      DB_PASSWORD: fintech_password
+    depends_on:
+      - postgres-db
+    networks:
+      - fintech-network
+
+  # ---------------------------------------------------------------------------
+  # 🐍 4. Módulo Analytics em Python 3.9 - Módulo Python 3.9 / Algoritmos
+  # ---------------------------------------------------------------------------
+  analytics-python:
+    build:
+      context: ./services/analytics-python
+      dockerfile: Dockerfile
+    container_name: fintech-analytics-service
+    restart: on-failure
+    ports:
+      - "5000:5000"
+    environment:
+      REDIS_HOST: redis-cache
+      REDIS_PORT: 6379
+    depends_on:
+      - redis-cache
+    networks:
+      - fintech-network
+
+# -----------------------------------------------------------------------------
+# 🌐 Redes e Volumes Compartilhados
+# -----------------------------------------------------------------------------
+networks:
+  fintech-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
