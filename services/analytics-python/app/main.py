@@ -1,17 +1,24 @@
 import os
-from algorithms.quicksort import quisort_transacoes
+import redis
+from algorithms.quicksort import quicksort_transacoes
 
-def analisar_score_credito(cliente_nome, transacoes):
-    print(f"Analisando score de crédito para o cliente: {cliente_nome}")
+# Conexão com container NoSQL Redis usando as variáveis do docker-compose
+REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
+REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
 
-    # 1. Aplicando o algoritmo QuickSort para ordenar as transações
-    transacoes_ordenadas = quisort_transacoes(transacoes)
-    print(f"Transações ordenadas por valor: {transacoes_ordenadas}") 
-    for t in transacoes_ordenadas:
-        print(f"    - ID : {t['id']}, Valor: R${t['valor']:.2f}")
+def conectar_redis():
+    try :
+        r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db = 0, decode_responses=True)
+        return r
+    except Exception as e:
+        print(f"⚠️ Erro ao conectar ao Redis: {e}")
+        return None
 
-    # 2. Uso de Walrus Operator (=:) recurso do python 3.9=
-    # atribui o total da soma a variável 'total' e faz chegar no mesmo comando 'if'
+def analisar_score_credito(cliente_nome, cliente_id, transacoes):
+    print(f"Analisando score de crédito para o cliente: {cliente_nome} (ID: {cliente_id})")
+    
+    transacoes_ordenadas = quicksort_transacoes(transacoes)
+
     if (total := sum(t['valor'] for t in transacoes_ordenadas)) > 1000.0:
         score = "Alto (VIP)"
     elif (total := sum(t['valor'] for t in transacoes_ordenadas)) > 500.0:
@@ -32,4 +39,4 @@ if __name__ == "__main__":
         {"id": 104, "valor": 300.0}
     ]
 
-    analisar_score_credito("João Silva", historico_testes)
+    analisar_score_credito("João Silva", 1, historico_testes)
