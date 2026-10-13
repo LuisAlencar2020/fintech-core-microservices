@@ -19,8 +19,8 @@ jobs:
       - name: Set up JDK 21
         uses: actions/setup-java@v3
         with:
-          distribution: '21'
-          java-version: 'Temurin'
+          distribution: 'temurin'
+          java-version: '21'
 
       # 3. Compila o serviço Java
       - name: Build Java Services
