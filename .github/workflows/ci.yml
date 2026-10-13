@@ -1,0 +1,53 @@
+name: Fintech Core Microservices - CI Piperline
+
+on: 
+  push:
+    branches: ["main", "master"]
+    pull_request:
+      branches: ["main", "master"]
+
+jobs:
+  build-antd-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Baixa o código fonte no repositório do GitHub
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # 2. Configura o ambiente JDK 21
+      - name: Set up JDK 21
+        uses: actions/setup-java@v3
+        with:
+          distribution: '21'
+          java-version: 'Temurin'
+
+      # 3. Compila o serviço Java
+      - name: Build Java Services
+        run: |
+          cd services/auth-service-java
+          javac -d bin src/main/java/com/fintech/model/Cliente.java \
+                      src/main/java/com/fintech/repository/ClienteRepository.java \
+                      src/main/java/com/fintech/Main.java
+
+      # 4. Configura o ambiente Python 3.9         
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      # 5. Instala o requeriments.txt do serviço Python
+      - name: Install Python Dependencies
+        run: |
+          cd services/analytics-python
+          pip install -r requirements.txt
+
+      # 6. Executa os testes unitários para ambos os serviços
+      - name: Run Tests for Java Services
+        run: |
+          cd services/auth-service-java
+          # Adicione aqui os comandos para executar os testes unitários do serviço Java  
+      - name: Run Tests for Python Services
+        run: |
+          cd services/analytics-python
+          pytest tests/
